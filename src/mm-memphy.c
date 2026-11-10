@@ -161,8 +161,10 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, addr_t *retfpn)
    /* 
     * TODO manage free frame list
     */
-   //*retfpn ..
-   // cap nhat lai danh sach free frame
+   // Lấy mã số khung trang gán vào biến trả về
+   *retfpn = fp->fpn;
+   // Cập nhật lại danh sách free frame
+   mp->free_fp_list = fp->fp_next;
 
    /* 
     * TODO MEMPHY is iteratively used up until its exhausted
