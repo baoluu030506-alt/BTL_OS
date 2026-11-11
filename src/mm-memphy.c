@@ -158,7 +158,7 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, addr_t *retfpn)
    if (fp == NULL)
       return -1;
 
-   /* 
+   /*
     * TODO manage free frame list
     */
    // Lấy mã số khung trang gán vào biến trả về
@@ -166,7 +166,7 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, addr_t *retfpn)
    // Cập nhật lại danh sách free frame
    mp->free_fp_list = fp->fp_next;
 
-   /* 
+   /*
     * TODO MEMPHY is iteratively used up until its exhausted
     * No garbage collector acting then it not been released
     */
@@ -177,20 +177,24 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, addr_t *retfpn)
 
 int MEMPHY_dump(struct memphy_struct *mp)
 {
-  /*
-   * TODO dump memphy contnt mp->storage
-   *     for tracing the memory content
-   */
+   /*
+    * TODO dump memphy contnt mp->storage
+    *     for tracing the memory content
+    */
 
    if (mp == NULL || mp->storage == NULL)
-        return -1;
+      return -1;
 
-   for (int i = 0; i < mp->maxsz; i++) {
-        if (mp->storage[i] != 0) {
-       
-            unsigned char val = (unsigned char)mp->storage[i];
-        }/// Ở đây chưa biết cụ thể ý định hàm này để làm gì
-    }
+   for (int i = 0; i < mp->maxsz; i++)
+   {
+      if (mp->storage[i] != 0)
+      {
+
+         unsigned char val = (unsigned char)mp->storage[i];
+
+         printf("%08x: %02x\n", i, val);
+      }
+   }
    return 0;
 }
 
