@@ -182,6 +182,15 @@ int MEMPHY_dump(struct memphy_struct *mp)
    *     for tracing the memory content
    */
 
+   if (mp == NULL || mp->storage == NULL)
+        return -1;
+
+   for (int i = 0; i < mp->maxsz; i++) {
+        if (mp->storage[i] != 0) {
+       
+            unsigned char val = (unsigned char)mp->storage[i];
+        }/// Ở đây chưa biết cụ thể ý định hàm này để làm gì
+    }
    return 0;
 }
 
