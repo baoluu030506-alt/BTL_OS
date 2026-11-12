@@ -55,10 +55,10 @@ struct pgn_t{
 struct vm_rg_struct {
    int vmaid;
 
-   addr_t rg_start;
+   addr_t rg_start;//byte start --> byte end 
    addr_t rg_end;
 
-   struct vm_rg_struct *rg_next;
+   struct vm_rg_struct *rg_next; //con trỏ trỏ đến vùng nhớ tiếp theo
 };
 
 /*
@@ -66,17 +66,17 @@ struct vm_rg_struct {
  */
 struct vm_area_struct {
    unsigned long vm_id;
-   addr_t vm_start;
-   addr_t vm_end;
+   addr_t vm_start; //start
+   addr_t vm_end; //end
 
-   addr_t sbrk;
+   addr_t sbrk; //con trỏ giới hạn 
 /*
  * Derived field
  * unsigned long vm_limit = vm_end - vm_start
  */
-   struct mm_struct *vm_mm;
-   struct vm_rg_struct *vm_freerg_list;
-   struct vm_area_struct *vm_next;
+   struct mm_struct *vm_mm; //con trỏ trỏ về cấu trúc quản lý bộ nhớ đang sở hữu vùng nhớ này 
+   struct vm_rg_struct *vm_freerg_list; //Các vùng 
+   struct vm_area_struct *vm_next; //vùng nhớ tiếp theo 
 };
 
 
@@ -109,7 +109,7 @@ struct mm_struct {
    uint32_t *pgd;
 #endif
 
-   struct vm_area_struct *mmap;
+   struct vm_area_struct *mmap; //Con trỏ trỏ đến các vùng bộ nhớ của tiến trình 
 
    /* Currently we support a fixed number of symbol */
    struct vm_rg_struct symrgtbl[PAGING_MAX_SYMTBL_SZ];
