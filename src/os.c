@@ -303,8 +303,12 @@ int main(int argc, char * argv[]) {
 	mm_ld_args->timer_id = ld_event;
 	mm_ld_args->mram = (struct memphy_struct *) &mram;
 	mm_ld_args->mswp = (struct memphy_struct**) &mswp;
-	mm_ld_args->active_mswp = (struct memphy_struct *) &mswp[0];
-        mm_ld_args->active_mswp_id = 0;
+	// chon swap dau tien co kich thuoc > 0 lam active swap (khong mac dinh mswp[0])
+	int act = 0;
+	while (act < PAGING_MAX_MMSWP - 1 && memswpsz[act] == 0)
+		act++;
+	mm_ld_args->active_mswp = (struct memphy_struct *) &mswp[act];
+	mm_ld_args->active_mswp_id = act;
 
 
 #endif
