@@ -73,7 +73,6 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
   pthread_mutex_lock(&mmvm_lock);
   struct vm_rg_struct rgnode;
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
-  int inc_sz=0;
 
   if (get_free_vmrg_area(caller, vmaid, size, &rgnode) == 0)
   {
@@ -89,14 +88,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
   /* TODO get_free_vmrg_area FAILED handle the region management (Fig.6)*/
 
   /*Attempt to increate limit to get space */
-#ifdef MM64
-  inc_sz = (uint32_t)(size/(int)PAGING64_PAGESZ);
-  inc_sz = inc_sz + 1;
-#else
-  inc_sz = PAGING_PAGE_ALIGNSZ(size);
-#endif
   int old_sbrk;
-  inc_sz = inc_sz + 1;
 
   old_sbrk = cur_vma->sbrk;
 
@@ -106,11 +98,8 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
   struct sc_regs regs;
   regs.a1 = SYSMEM_INC_OP;
   regs.a2 = vmaid;
-#ifdef MM64
   regs.a3 = size;
-#else
-  regs.a3 = PAGING_PAGE_ALIGNSZ(size);
-#endif  
+
   _syscall(caller->krnl, caller->pid, 17, &regs); /* SYSCALL 17 sys_memmap */
   /*Successful increase limit */
   caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
@@ -118,10 +107,9 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
 
   *alloc_addr = old_sbrk;
 
-  /* If, after SYSCALL 17 increases the sbrk value (by a multiple of the page size), 
-    there remains an unused portion of memory [old_sbrk + size, cur_vma->sbrk],
-    create a new free-region node and add it to the vm_freerg_list
-    so it can be reused for future allocations. */
+  /* Nếu sau khi SYSCALL 17 nâng sbrk (theo bội số trang) mà vẫn còn 
+    phần bộ nhớ dư [old_sbrk + size, cur_vma->sbrk], tạo node vùng trống mới 
+    và đưa vào danh sách vm_freerg_list để tái sử dụng cho các lần alloc sau. */
   if (old_sbrk + size < cur_vma->sbrk)
   {
     struct vm_rg_struct *rg_free = malloc(sizeof(struct vm_rg_struct));
@@ -167,7 +155,7 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
   freerg_node->rg_end = rgnode->rg_end;
   freerg_node->rg_next = NULL;
 
-  /* Assign current vmaid for the freerg_node just delete to avoid trash value */
+  /* Gán vmaid cho freenode vừa tạo */
   freerg_node->vmaid = vmaid;
 
   rgnode->rg_start = rgnode->rg_end = 0;
