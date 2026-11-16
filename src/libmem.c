@@ -82,6 +82,9 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
  
     *alloc_addr = rgnode.rg_start;
 
+  /* Lưu địa chỉ vùng nhớ vừa cấp phát vào thanh ghi rgid của tiến trình */
+    caller->regs[rgid] = *alloc_addr;
+
     pthread_mutex_unlock(&mmvm_lock);
     return 0;
   }
@@ -118,10 +121,10 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
 
   *alloc_addr = old_sbrk;
 
-   /* [BỔ SUNG 1]: Lưu địa chỉ cấp phát vào thanh ghi của tiến trình */
+   /* Lưu địa chỉ cấp phát vào thanh ghi của tiến trình */
   caller->regs[rgid] = *alloc_addr;
 
-  /* [BỔ SUNG 2]: Nếu sau khi SYSCALL 17 nâng sbrk (theo bội số trang) mà vẫn còn 
+  /* Nếu sau khi SYSCALL 17 nâng sbrk (theo bội số trang) mà vẫn còn 
    * phần bộ nhớ dư [old_sbrk + size, cur_vma->sbrk], tạo node vùng trống mới 
    * và đưa vào danh sách vm_freerg_list để tái sử dụng cho các lần alloc sau. */
   if (old_sbrk + size < cur_vma->sbrk)
@@ -136,7 +139,6 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
 
   pthread_mutex_unlock(&mmvm_lock);
   return 0;
-
 }
 
 /*__free - remove a region memory
@@ -168,6 +170,9 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
   freerg_node->rg_start = rgnode->rg_start;
   freerg_node->rg_end = rgnode->rg_end;
   freerg_node->rg_next = NULL;
+
+  /* Gán ID của vùng nhớ ảo (vmaid) cho node vùng trống vừa thu hồi */
+  freerg_node->vmaid = vmaid;
 
   rgnode->rg_start = rgnode->rg_end = 0;
   rgnode->rg_next = NULL;
