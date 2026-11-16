@@ -225,10 +225,10 @@ static void read_config(const char * path) {
        fscanf(file, "\n"); /* Final character */
 
 	// theo de: phai co ram va it nhat 1 swap co kich thuoc lon hon 0
-	int has_swap = 0;
+	bool has_swap = false;
 	for(sit = 0; sit < PAGING_MAX_MMSWP; sit++)
 		if (memswpsz[sit] > 0)
-			has_swap = 1;
+			has_swap = true;
 	if (memramsz == 0 || !has_swap) {
 		printf("Invalid RAM/SWAP size in %s\n", path);
 		exit(1);
@@ -304,11 +304,11 @@ int main(int argc, char * argv[]) {
 	mm_ld_args->mram = (struct memphy_struct *) &mram;
 	mm_ld_args->mswp = (struct memphy_struct**) &mswp;
 	// chon swap dau tien co kich thuoc > 0 lam active swap (khong mac dinh mswp[0])
-	int act = 0;
-	while (act < PAGING_MAX_MMSWP - 1 && memswpsz[act] == 0)
-		act++;
-	mm_ld_args->active_mswp = (struct memphy_struct *) &mswp[act];
-	mm_ld_args->active_mswp_id = act;
+	int act_swap = 0;
+	while (act_swap < PAGING_MAX_MMSWP - 1 && memswpsz[act_swap] == 0)
+		act_swap++;
+	mm_ld_args->active_mswp = (struct memphy_struct *) &mswp[act_swap];
+	mm_ld_args->active_mswp_id = act_swap;
 
 
 #endif
