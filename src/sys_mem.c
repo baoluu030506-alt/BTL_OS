@@ -13,6 +13,7 @@
 #include "libmem.h"
 #include "queue.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 #ifdef MM64
 #include "mm64.h"
@@ -30,8 +31,9 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
     * TODO THIS DUMMY CREATE EMPTY PROC TO AVOID COMPILER NOTIFY 
     *      need to be eliminated
 	*/
-   struct pcb_t *caller = malloc(sizeof(struct pcb_t));
-   caller->krnl = malloc(sizeof(struct krnl_t));
+    // bo malloc gia
+   struct pcb_t *caller = NULL;
+   int i, prio;
 
    /*
     * @bksysnet: Please note in the dual spacing design
@@ -46,6 +48,25 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
     /* user process are not allowed to access directly pcb in kernel space of syscall */
     //....
 
+    // tim trong running_list truoc vi process dang goi syscall thuong dang chay
+   for (i = 0; i < krnl->running_list->size; i++)
+      if (krnl->running_list->proc[i]->pid == pid)
+         caller = krnl->running_list->proc[i];
+
+#ifdef MLQ_SCHED
+   // neu chua thay thi tim trong tung hang doi uu tien cua mlq
+   for (prio = 0; caller == NULL && prio < MAX_PRIO; prio++)
+      for (i = 0; i < krnl->mlq_ready_queue[prio].size; i++)
+         if (krnl->mlq_ready_queue[prio].proc[i]->pid == pid)
+            caller = krnl->mlq_ready_queue[prio].proc[i];
+#endif
+
+   // khong tim thay pid thi bao loi, khong dung caller la NULL
+   if (caller == NULL) {
+      printf("sys_memmap: khong tim thay pid %u\n", pid);
+      return -1;
+   }
+
    switch (memop) {
    case SYSMEM_MAP_OP:
             /* Reserved process case*/
@@ -59,7 +80,7 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs* regs)
             break;
    case SYSMEM_IO_READ:
             MEMPHY_read(krnl->mram, regs->a2, &value);
-            regs->a3 = value;
+            regs->a3 = (unsigned char) value; // BYTE co dau, ep kieu de tranh mo rong dau
             break;
    case SYSMEM_IO_WRITE:
             MEMPHY_write(krnl->mram, regs->a2, regs->a3);

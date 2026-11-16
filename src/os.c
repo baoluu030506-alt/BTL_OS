@@ -223,6 +223,16 @@ static void read_config(const char * path) {
 		fscanf(file, FORMAT_ARG, &(memswpsz[sit])); 
 
        fscanf(file, "\n"); /* Final character */
+
+	// theo de: phai co ram va it nhat 1 swap co kich thuoc lon hon 0
+	int has_swap = 0;
+	for(sit = 0; sit < PAGING_MAX_MMSWP; sit++)
+		if (memswpsz[sit] > 0)
+			has_swap = 1;
+	if (memramsz == 0 || !has_swap) {
+		printf("Invalid RAM/SWAP size in %s\n", path);
+		exit(1);
+	}
 #endif
 #endif
 
@@ -328,6 +338,3 @@ int main(int argc, char * argv[]) {
 	return 0;
 
 }
-
-
-
