@@ -118,6 +118,22 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
 
   *alloc_addr = old_sbrk;
 
+   /* [BỔ SUNG 1]: Lưu địa chỉ cấp phát vào thanh ghi của tiến trình */
+  caller->regs[rgid] = *alloc_addr;
+
+  /* [BỔ SUNG 2]: Nếu sau khi SYSCALL 17 nâng sbrk (theo bội số trang) mà vẫn còn 
+   * phần bộ nhớ dư [old_sbrk + size, cur_vma->sbrk], tạo node vùng trống mới 
+   * và đưa vào danh sách vm_freerg_list để tái sử dụng cho các lần alloc sau. */
+  if (old_sbrk + size < cur_vma->sbrk)
+  {
+    struct vm_rg_struct *rg_free = malloc(sizeof(struct vm_rg_struct));
+    rg_free->rg_start = old_sbrk + size;
+    rg_free->rg_end = cur_vma->sbrk;
+    rg_free->vmaid = vmaid;
+    rg_free->rg_next = NULL;
+    enlist_vm_freerg_list(caller->mm, rg_free);
+  }
+
   pthread_mutex_unlock(&mmvm_lock);
   return 0;
 
