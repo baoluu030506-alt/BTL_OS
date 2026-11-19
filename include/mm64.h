@@ -62,30 +62,4 @@
 #define PAGING64_ADDR_P4D_MASK  GENMASK64(PAGING64_ADDR_P4D_HIBIT,PAGING64_ADDR_P4D_LOBIT)
 #define PAGING64_ADDR_PGD_MASK  GENMASK64(PAGING64_ADDR_PGD_HIBIT,PAGING64_ADDR_PGD_LOBIT)
 
-//Các bit trạng thái của PTE 
-#define PAGING_PTE_PRESENT_MASK (1U << 31) //1U: unsigned int 
-#define PAGING_PTE_SWAPPED_MASK (1U << 30)
-#define PAGING_PTE_DIRTY_MASK   (1U << 28)
-
-//Trích xuất FPN, SWAP Type, SWAP Offset 
-#define PAGING_PTE_FPN_MASK 0x00001FFF //13 bit thấp 
-#define PAGING_PTE_SWP_TYP_MASK 0x0000001F //5 bit thấp 
-#define PAGING_PTE_SWP_OFF_MASK 0x03FFFFE0 //21 bit 5-25
-
-//Thao tác bit 
-#define GETBIT(val, mask) (((val) & (mask)) ? 1 : 0)
-#define SETBIT(val, mask) ((val) | (mask))
-#define CLRBIT(val, mask) ((val) & ~(mask))
-
-//Ghi trạng thái cho PTE 
-#define PAGING_PTE_SET_PRESENT(pte) ((pte) = SETBIT((pte), PAGING_PTE_PRESENT_MASK))
-#define PAGING_PTE_CLR_PRESENT(pte) ((pte) = CLRBIT((pte), PAGING_PTE_PRESENT_MASK))
-
-#define PAGING_PTE_SET_SWAPPED(pte) ((pte) = SETBIT((pte), PAGING_PTE_SWAPPED_MASK))
-#define PAGING_PTE_CLR_SWAPPED(pte) ((pte) = CLRBIT((pte), PAGING_PTE_SWAPPED_MASK))
-
-//Lấy dữ liệu từ PTE 
-#define PAGING_PTE_FPN(pte) ((pte) & PAGING_PTE_FPN_MASK)
-#define PAGING_PTE_SWP_TYP(pte) ((pte) & PAGING_PTE_SWP_TYP_MASK)
-#define PAGING_PTE_SWP_OFF(pte) (((pte) & PAGING_PTE_SWP_OFF_MASK) >> 5)
 #endif
