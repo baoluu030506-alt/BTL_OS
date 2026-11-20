@@ -98,6 +98,16 @@ struct pcb_t * load(const char * path) {
 			);
 			break;
 		case DMA_MEMCPY:
+			fscanf(
+				file,
+				" " FORMAT_ARG " " FORMAT_ARG
+               	" " FORMAT_ARG " " FORMAT_ARG, 
+				&proc->code->text[i].arg_0, 
+				&proc->code->text[i].arg_1, 
+				&proc->code->text[i].arg_2,
+				&proc->code->text[i].arg_3
+				);
+			break;
 		case COPY_FROM_USER:
 		case COPY_TO_USER:
 		case SYSCALL:
