@@ -265,7 +265,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     MEMPHY_put_freefp(caller->krnl->active_mswp, tgtfpn);
 
     /* Update page table */
-    pte_set_swap(target_mm, vicpgn, 0, swpfpn, caller);
+    pte_set_swap(caller, vicpgn, 0, swpfpn);
     // pte_set_swap(...);
 
     /* Update its online status of the target page */
