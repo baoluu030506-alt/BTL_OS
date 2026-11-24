@@ -536,8 +536,6 @@ int libkmem_malloc(struct pcb_t *caller, uint32_t size, uint32_t reg_index)
 #endif
 
   return val;
-
-  return 0;
 }
 
 // Ham phu tim vung nho trong theo First-Fit
@@ -737,8 +735,18 @@ int libmem_dma_memcpy(struct pcb_t *caller, uint32_t src, uint32_t dst, uint32_t
   // do_dma(caller, (uint64_t) src, (uint64_t) dst, (uint64_t) size);
   // krnl->...
   // krnl->...
-  do_dma(caller, (uint64_t)src + offset, (uint64_t)dst + offset, (uint64_t)size);
-  return 0;
+  if (caller == NULL || caller->krnl == NULL)
+  {
+    return -1;
+  }
+
+  struct sc_regs regs;
+  regs.a1 = src;
+  regs.a2 = dst;
+  regs.a3 = offset;
+  regs.a4 = size;
+
+  return _syscall(caller->krnl, caller->pid, 18, &regs);
 }
 
 int libkmem_copy_from_user(struct pcb_t *caller, uint32_t source, uint32_t destination, uint32_t offset, uint32_t size)
@@ -928,16 +936,16 @@ int __write_user_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, B
     pthread_mutex_unlock(&mmvm_lock);
     return -1;
   }
- // CHẶN KERNEL SPACE
+  // CHẶN KERNEL SPACE
   {
-  struct vm_rg_struct *currg = get_symrg_byid(mm, rgid);
-  struct vm_area_struct *cur_vma = get_vma_by_num(mm, vmaid);
+    struct vm_rg_struct *currg = get_symrg_byid(mm, rgid);
+    struct vm_area_struct *cur_vma = get_vma_by_num(mm, vmaid);
 
-  if (currg == NULL || cur_vma == NULL ||
-      currg->rg_start >= currg->rg_end ||
-      currg->rg_start + offset >= currg->rg_end ||
-      currg->mode_bit == 0)
-    pthread_mutex_unlock(&mmvm_lock);
+    if (currg == NULL || cur_vma == NULL ||
+        currg->rg_start >= currg->rg_end ||
+        currg->rg_start + offset >= currg->rg_end ||
+        currg->mode_bit == 0)
+      pthread_mutex_unlock(&mmvm_lock);
     return -1;
   }
 
@@ -964,48 +972,60 @@ int free_pcb_memph(struct pcb_t *caller)
 #ifdef MM64
   struct mm_struct *mm = caller->mm;
 
-  if (mm->pgd == NULL) {
-      pthread_mutex_unlock(&mmvm_lock);
-      return -1;
+  if (mm->pgd == NULL)
+  {
+    pthread_mutex_unlock(&mmvm_lock);
+    return -1;
   }
 
   int pgd_size = (PAGING64_ADDR_PGD_MASK >> PAGING64_ADDR_PGD_LOBIT) + 1;
   int p4d_size = (PAGING64_ADDR_P4D_MASK >> PAGING64_ADDR_P4D_LOBIT) + 1;
   int pud_size = (PAGING64_ADDR_PUD_MASK >> PAGING64_ADDR_PUD_LOBIT) + 1;
   int pmd_size = (PAGING64_ADDR_PMD_MASK >> PAGING64_ADDR_PMD_LOBIT) + 1;
-  int pt_size  = (PAGING64_ADDR_PT_MASK >> PAGING64_ADDR_PT_LOBIT) + 1;
+  int pt_size = (PAGING64_ADDR_PT_MASK >> PAGING64_ADDR_PT_LOBIT) + 1;
 
   addr_t *pgd_table = mm->pgd;
 
-  for (int i = 0; i < pgd_size; i++) {
-    if (pgd_table[i] == 0) continue;
-      
+  for (int i = 0; i < pgd_size; i++)
+  {
+    if (pgd_table[i] == 0)
+      continue;
+
     addr_t *p4d_table = (addr_t *)pgd_table[i];
-      
-    for (int j = 0; j < p4d_size; j++) {
-      if (p4d_table[j] == 0) continue;
+
+    for (int j = 0; j < p4d_size; j++)
+    {
+      if (p4d_table[j] == 0)
+        continue;
 
       addr_t *pud_table = (addr_t *)p4d_table[j];
 
-      for (int k = 0; k < pud_size; k++) {
-        if (pud_table[k] == 0) continue;
+      for (int k = 0; k < pud_size; k++)
+      {
+        if (pud_table[k] == 0)
+          continue;
 
         addr_t *pmd_table = (addr_t *)pud_table[k];
 
-        for (int m = 0; m < pmd_size; m++) {
-          if (pmd_table[m] == 0) continue;
+        for (int m = 0; m < pmd_size; m++)
+        {
+          if (pmd_table[m] == 0)
+            continue;
 
           addr_t *pt_table = (addr_t *)pmd_table[m];
 
-          for (int n = 0; n < pt_size; n++) {
+          for (int n = 0; n < pt_size; n++)
+          {
             addr_t pte = pt_table[n];
 
-            if (PAGING_PAGE_PRESENT(pte)) {
+            if (PAGING_PAGE_PRESENT(pte))
+            {
               addr_t fpn = PAGING_FPN(pte);
               MEMPHY_put_freefp(caller->krnl->mram, fpn);
               pt_table[n] = 0;
             }
-            else if (pte & PAGING_PTE_SWAPPED_MASK) {
+            else if (pte & PAGING_PTE_SWAPPED_MASK)
+            {
               addr_t swpfpn = PAGING_SWP(pte);
               MEMPHY_put_freefp(caller->krnl->active_mswp, swpfpn);
               pt_table[n] = 0;
@@ -1017,13 +1037,16 @@ int free_pcb_memph(struct pcb_t *caller)
   }
 
 #else
-  for (int pagenum = 0; pagenum < PAGING_MAX_PGN; pagenum++) {
+  for (int pagenum = 0; pagenum < PAGING_MAX_PGN; pagenum++)
+  {
     addr_t pte = caller->mm->pgd[pagenum];
 
-    if (PAGING_PAGE_PRESENT(pte)) {
+    if (PAGING_PAGE_PRESENT(pte))
+    {
       MEMPHY_put_freefp(caller->krnl->mram, PAGING_FPN(pte));
     }
-    else if (pte & PAGING_PTE_SWAPPED_MASK) {
+    else if (pte & PAGING_PTE_SWAPPED_MASK)
+    {
       MEMPHY_put_freefp(caller->krnl->active_mswp, PAGING_SWP(pte));
     }
   }
@@ -1032,7 +1055,6 @@ int free_pcb_memph(struct pcb_t *caller)
   pthread_mutex_unlock(&mmvm_lock);
   return 0;
 }
-
 
 /*find_victim_page - find victim page
  *@caller: caller
