@@ -936,16 +936,17 @@ int __write_user_mem(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, B
     pthread_mutex_unlock(&mmvm_lock);
     return -1;
   }
-  // CHẶN KERNEL SPACE
-  {
-    struct vm_rg_struct *currg = get_symrg_byid(mm, rgid);
-    struct vm_area_struct *cur_vma = get_vma_by_num(mm, vmaid);
 
-    if (currg == NULL || cur_vma == NULL ||
-        currg->rg_start >= currg->rg_end ||
-        currg->rg_start + offset >= currg->rg_end ||
-        currg->mode_bit == 0)
-      pthread_mutex_unlock(&mmvm_lock);
+  struct vm_rg_struct *currg = get_symrg_byid(mm, rgid);
+  struct vm_area_struct *cur_vma = get_vma_by_num(mm, vmaid);
+
+  // CHẶN KERNEL SPACE
+  if (currg == NULL || cur_vma == NULL ||
+      currg->rg_start >= currg->rg_end ||
+      currg->rg_start + offset >= currg->rg_end ||
+      currg->mode_bit == 0)
+  {
+    pthread_mutex_unlock(&mmvm_lock);
     return -1;
   }
 
