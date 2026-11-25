@@ -58,6 +58,12 @@ struct vm_rg_struct {
    addr_t rg_start;//byte start --> byte end 
    addr_t rg_end;
 
+   /* Privilege mode bit:
+    *   usermode:   mode bit = 1
+    *   kernelmode: mode bit = 0
+    */
+   unsigned long mode_bit;
+
    struct vm_rg_struct *rg_next; //con trỏ trỏ đến vùng nhớ tiếp theo
 };
 
