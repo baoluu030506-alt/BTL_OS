@@ -35,13 +35,12 @@
 #include "Vdma_top.h"
 #include "Vdma_top__Dpi.h"
 
-#if DMA_MAIN == 1
 extern "C"
 {
 #include "common.h"
 #include "os-mm.h"
 }
-#endif
+
 
 // RTL Direct Test - Drive Verilator RTL directly
 extern "C" int dpi_rtl_dma_copy(uint64_t src_offset, uint64_t dst_offset, uint64_t length);

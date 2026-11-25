@@ -70,8 +70,7 @@ int __sys_memmap(struct krnl_t *krnl, uint32_t pid, struct sc_regs *regs)
       vmap_pgd_memset(caller, regs->a2, regs->a3); // a2 = dia chi ao bat dau, a3 = so trang
       break;
    case SYSMEM_INC_OP:
-      inc_vma_limit(caller, regs->a2, regs->a3); // a2 = vmaid, a3 = so byte can them
-      break;
+      return inc_vma_limit(caller, regs->a2, regs->a3);
    case SYSMEM_SWP_OP:
       __mm_swap_page(caller, regs->a2, regs->a3); // a2 = khung RAM bi day ra, a3 = khung SWAP
       break;

@@ -128,6 +128,7 @@ int MEMPHY_format(struct memphy_struct *mp, int pagesz)
    /* This setting come with fixed constant PAGESZ */
    int numfp = mp->maxsz / pagesz;
    struct framephy_struct *newfst, *fst;
+   mp->free_fp_list = NULL;
    int iter = 0;
 
    if (numfp <= 0)
@@ -136,6 +137,7 @@ int MEMPHY_format(struct memphy_struct *mp, int pagesz)
    /* Init head of free framephy list */
    fst = malloc(sizeof(struct framephy_struct));
    fst->fpn = iter;
+   fst->fp_next = NULL;
    mp->free_fp_list = fst;
 
    /* We have list with first element, fill in the rest num-1 element member*/
@@ -221,9 +223,11 @@ int init_memphy(struct memphy_struct *mp, addr_t max_size, int randomflg)
    memset(mp->storage, 0, max_size * sizeof(BYTE));
 
 #ifdef MM64
-   MEMPHY_format(mp, PAGING64_PAGESZ);
+   if (MEMPHY_format(mp, PAGING64_PAGESZ) != 0)
+      return -1;
 #else
-   MEMPHY_format(mp, PAGING_PAGESZ);
+   if (MEMPHY_format(mp, PAGING_PAGESZ) != 0)
+      return -1;
 #endif
 
    mp->rdmflg = (randomflg != 0) ? 1 : 0;

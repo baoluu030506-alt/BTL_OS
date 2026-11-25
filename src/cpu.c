@@ -114,6 +114,7 @@ switch (ins.opcode)
 	case READ:
 #ifdef MM_PAGING
 		stat = libread(proc, ins.arg_0, ins.arg_1, (uint32_t*) &ins.arg_2);
+
 #else
 		stat = read(proc, ins.arg_0, ins.arg_1, ins.arg_2);
 #endif

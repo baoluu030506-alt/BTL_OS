@@ -128,22 +128,76 @@ int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, addr_t vmastart, a
  *@inc_sz: increment size
  *
  */
+
 int inc_vma_limit(struct pcb_t *caller, int vmaid, addr_t inc_sz)
 {
-  /* TOTO with new address scheme, the size need tobe aligned 
-   *      the raw inc_sz maybe not fit pagesize
-   */ 
+    if (caller == NULL || caller->mm == NULL ||
+        caller->krnl == NULL || caller->krnl->mram == NULL ||
+        inc_sz == 0)
+        return -1;
 
-  /* 
-   * TODO Validate overlap of obtained region 
-   *if (validate_overlap_vm_area(caller, vmaid, area->rg_start, area->rg_end) < 0)
-   *   return -1;  //Overlap and failed allocation 
-   */
+    struct vm_area_struct *vma =
+        get_vma_by_num(caller->mm, vmaid);
 
-  /* TODO: Obtain the new vm area based on vmaid */
+    if (vma == NULL)
+        return -1;
 
+#ifdef MM64
+    const addr_t pagesz = PAGING64_PAGESZ;
+#else
+    const addr_t pagesz = PAGING_PAGESZ;
+#endif
 
-  return 0;
+    addr_t old_sbrk = vma->sbrk;
+
+    if (old_sbrk % pagesz != 0 ||
+        inc_sz > (addr_t)-1 - (pagesz - 1))
+        return -1;
+
+    addr_t alignedsz =
+        ((inc_sz + pagesz - 1) / pagesz) * pagesz;
+
+    if (old_sbrk > (addr_t)-1 - alignedsz)
+        return -1;
+
+    addr_t pgnum = alignedsz / pagesz;
+    addr_t mapped = 0;
+
+    for (addr_t i = 0; i < pgnum; i++)
+    {
+        addr_t fpn;
+        addr_t pgn = old_sbrk / pagesz + i;
+
+        if (MEMPHY_get_freefp(caller->krnl->mram, &fpn) != 0)
+            goto rollback;
+
+        if (pte_set_fpn(caller->mm, pgn, fpn, caller) != 0)
+        {
+            MEMPHY_put_freefp(caller->krnl->mram, fpn);
+            goto rollback;
+        }
+
+        mapped++;
+    }
+
+    vma->sbrk = old_sbrk + alignedsz;
+
+    if (vma->vm_end < vma->sbrk)
+        vma->vm_end = vma->sbrk;
+
+    return 0;
+
+rollback:
+    for (addr_t i = 0; i < mapped; i++)
+    {
+        addr_t pgn = old_sbrk / pagesz + i;
+        addr_t pte = pte_get_entry(caller->mm, pgn, caller);
+
+        MEMPHY_put_freefp(caller->krnl->mram, PAGING_FPN(pte));
+        pte_set_entry(caller->mm, pgn, 0, caller);
+    }
+
+    return -1;
 }
 
 // #endif

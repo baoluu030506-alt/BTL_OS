@@ -78,6 +78,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
   {
     caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
     caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
+    caller->mm->symrgtbl[rgid].mode_bit = 1;
 
     *alloc_addr = rgnode.rg_start;
 
@@ -100,10 +101,15 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t *allo
   regs.a2 = vmaid;
   regs.a3 = size;
 
-  _syscall(caller->krnl, caller->pid, 17, &regs); /* SYSCALL 17 sys_memmap */
+  if (_syscall(caller->krnl, caller->pid, 17, &regs) != 0)
+{
+    pthread_mutex_unlock(&mmvm_lock);
+    return -1;
+} /* SYSCALL 17 sys_memmap */
   /*Successful increase limit */
   caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
   caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
+  caller->mm->symrgtbl[rgid].mode_bit = 1;
 
   *alloc_addr = old_sbrk;
 
@@ -459,7 +465,6 @@ int __write(struct pcb_t *caller, int vmaid, int rgid, addr_t offset, BYTE value
   }
   struct vm_rg_struct *currg = get_symrg_byid(mm, rgid);
   struct vm_area_struct *cur_vma = get_vma_by_num(mm, vmaid);
-
   if (currg == NULL || cur_vma == NULL ||
       currg->rg_start >= currg->rg_end ||
       currg->rg_start + offset >= currg->rg_end ||
@@ -635,6 +640,7 @@ addr_t __kmalloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t 
     mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
     mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
     mm->symrgtbl[rgid].vmaid = vmaid;
+    mm->symrgtbl[rgid].mode_bit = 0;
 
     if (alloc_addr != NULL)
       *alloc_addr = rgnode.rg_start;
@@ -693,6 +699,7 @@ addr_t __kmalloc(struct pcb_t *caller, int vmaid, int rgid, addr_t size, addr_t 
   mm->symrgtbl[rgid].rg_start = old_sbrk;
   mm->symrgtbl[rgid].rg_end = old_sbrk + size;
   mm->symrgtbl[rgid].vmaid = vmaid;
+  mm->symrgtbl[rgid].mode_bit = 0;
 
   if (alloc_addr != NULL)
     *alloc_addr = old_sbrk;
