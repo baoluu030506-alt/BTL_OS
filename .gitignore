@@ -3,3 +3,6 @@
 os
 .vscode/
 .DS_Store
+my_output/
+*.o
+os
