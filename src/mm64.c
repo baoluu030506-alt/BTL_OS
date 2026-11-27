@@ -620,10 +620,10 @@ int print_list_pgn(struct pgn_t *ip)
 
 int print_pgtbl(struct pcb_t *caller, addr_t start, addr_t end)
 {
+  if (caller == NULL || caller->mm == NULL ||
+    caller->mm->pgd == NULL)
+    return -1;
 
-  // addr_t pgn = start / PAGING_PAGESZ;
-  // int pgnum = (end - start) / PAGING_PAGESZ;
-  // struct mm_struct *mm = caller->krnl->mm;
   addr_t pgd = 0;
   addr_t p4d = 0;
   addr_t pud = 0;
@@ -634,19 +634,32 @@ int print_pgtbl(struct pcb_t *caller, addr_t start, addr_t end)
 
   /* TODO traverse the page map and dump the page directory entries */
 
-  if (pt != 0)
+  addr_t *pgd_table = caller->mm->pgd;
+  addr_t *p4d_table = NULL;
+  addr_t *pud_table = NULL;
+  addr_t *pmd_table = NULL;
+
+  if (pgd_table[pgd] != 0)
   {
-    // In 5 cấp (MM64)
-    printf(" PDG=  %p P4D=  %p PUD=  %p PMD=  %pPT=  %p\n",
-           (void *)pgd, (void *)p4d, (void *)pud, (void *)pmd, (void *)pt);
-  }
-  else
-  {
-    // In 4 cấp (Trường hợp rút gọn)
-    printf(" PDG=%p P4g=%p PUD=%p PMD=%p\n",
-           (void *)pgd, (void *)p4d, (void *)pud, (void *)pmd);
+    p4d_table = (addr_t *)pgd_table[pgd];
+
+    if (p4d_table[p4d] != 0)
+    {
+      pud_table = (addr_t *)p4d_table[p4d];
+
+      if (pud_table[pud] != 0)
+        {
+          pmd_table = (addr_t *)pud_table[pud];
+        }
+      }
   }
 
+  printf(" PDG=%llx P4g=%llx PUD=%llx PMD=%llx\n",
+          (unsigned long long)(uintptr_t)pgd_table,
+          (unsigned long long)(uintptr_t)p4d_table,
+          (unsigned long long)(uintptr_t)pud_table,
+          (unsigned long long)(uintptr_t)pmd_table);
+          
   return 0;
 }
 
